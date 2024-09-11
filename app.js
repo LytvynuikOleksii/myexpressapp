@@ -16,7 +16,7 @@ app.get("/users/:id", (req, res) => {
   const user = users[id];
 
   if (!user) {
-    res.status(404).json({ error: "User not found" });
+    res.status(404).json({ error: "Користувача не існує" });
     return;
   }
 
