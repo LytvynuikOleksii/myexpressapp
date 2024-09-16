@@ -1,65 +1,78 @@
 const express = require("express");
+const sqlite3 = require("sqlite3");
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
+const db = new sqlite3.Database(":memory:");
+
+db.serialize(() => {
+  db.run(
+    "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT)"
+  );
+});
 
 let users = {};
 
 app.get("/users", (req, res) => {
-  res.status(200).json({ users });
+  db.all(`SELECT * FROM users`, [], (err, rows) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.json(rows);
+  });
 });
 
 app.get("/users/:id", (req, res) => {
   const { id } = req.params;
-  const user = users[id];
-
-  if (!user) {
-    res.status(404).json({ error: "Користувача не існує" });
-    return;
-  }
-
-  res.status(200).json({ user: users[id] });
+  db.get(`SELECT * FROM users WHERE id = ?`, [id], (err, row) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.json(row);
+  });
 });
 
 app.post("/users", (req, res) => {
-  const { id, name, email } = req.body;
+  const { name, email } = req.body;
 
-  if (users[id]) {
-    res.status(409).json({ error: "User already exists" });
-    return;
-  }
-
-  users[id] = { name, email };
-  res.status(201).json({ user: users[id] });
+  db.run(
+    `INSERT INTO users (name, email) VALUES (?, ?)`,
+    [name, email],
+    function (err) {
+      if (err) {
+        return res.status(400).json({ error: err.message });
+      }
+      res.status(201).json({ id: this.lastID });
+    }
+  );
 });
 
 app.put("/users/:id", (req, res) => {
   const { id } = req.params;
   const { name, email } = req.body;
-  const user = users[id];
 
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  users[id] = { name, email };
-  res.status(200).json({ user: users[id] });
+  db.run(
+    `UPDATE users SET name = ?, email = ? WHERE id = ?`,
+    [name, email, id],
+    function (err) {
+      if (err) {
+        return res.status(400).json({ error: err.message });
+      }
+      res.json({ message: `Row uodated: ${this.changes}` });
+    }
+  );
 });
 
 app.delete("/users/:id", (req, res) => {
   const { id } = req.params;
-  const user = users[id];
-
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  delete users[id];
-  res.status(200).json({ message: "User delete successfully" });
+  db.run(`DELETE FROM users WHERE id = ?`, [id], function (err) {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    res.json({ message: `Row deleted: ${this.changes}` });
+  });
 });
 
 app.listen(port, () => {
