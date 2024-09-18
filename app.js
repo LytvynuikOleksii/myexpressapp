@@ -1,5 +1,6 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
+const Joi = require("joi");
 
 const prisma = new PrismaClient();
 const app = express();
@@ -7,6 +8,19 @@ const port = 3000;
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+  // console.log(req);
+  // console.log(req.url, req.method);
+  console.log("Метод", req.method, "і шлях", req.path, "запиту.");
+  next();
+});
+
+const userSchema = Joi.object({
+  name: Joi.string().min(3).max(30).required(),
+  email: Joi.string().email().required(),
+});
+
+// Перегляд всіх користувачів
 app.get("/users", async (req, res) => {
   try {
     const users = await prisma.user.findMany();
@@ -16,6 +30,7 @@ app.get("/users", async (req, res) => {
   }
 });
 
+// Перегляд певного користувача
 app.get("/users/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -32,8 +47,14 @@ app.get("/users/:id", async (req, res) => {
   }
 });
 
+// Створення користувача
 app.post("/users", async (req, res) => {
-  const { name, email } = req.body;
+  const userData = req.body;
+  const { value, error } = userSchema.validate(userData);
+  if (error) {
+    return res.status(400).json(`Error: ${error.message}`);
+  }
+  const { name, email } = value;
 
   try {
     const user = await prisma.user.create({
@@ -45,6 +66,7 @@ app.post("/users", async (req, res) => {
   }
 });
 
+// Корегування користувача
 app.put("/users/:id", async (req, res) => {
   const { id } = req.params;
   const { name, email } = req.body;
@@ -60,6 +82,7 @@ app.put("/users/:id", async (req, res) => {
   }
 });
 
+// Видалення користувача
 app.delete("/users/:id", async (req, res) => {
   const { id } = req.params;
 

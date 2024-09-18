@@ -12,6 +12,7 @@
   "dependencies": {
     "@prisma/client": "^5.19.1",
     "express": "^4.19.2",
+    "joi": "^17.13.3",
     "prisma": "^5.19.1",
     "sqlite3": "^5.1.7"
   }
