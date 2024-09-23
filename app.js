@@ -23,8 +23,8 @@ const userSchema = Joi.object({
 // Перегляд всіх користувачів
 app.get("/users", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const startIndex = (page -1) * limit;
+  const limit = parseInt(req.query.limit) || 3;
+  const startIndex = (page - 1) * limit;
   const endIndex = page * limit;
   try {
     const users = await prisma.user.findMany();
@@ -101,6 +101,10 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Example app listening at http://localhost:${port}`);
+  });
+}
+
+module.exports = app;
