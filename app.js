@@ -1,8 +1,10 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const Joi = require("joi");
+const NodeCache = require("node-cache");
 
 const prisma = new PrismaClient();
+const cache = new NodeCache();
 const app = express();
 const port = 3000;
 
@@ -39,13 +41,22 @@ app.get("/users", async (req, res) => {
 app.get("/users/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await prisma.user.findUnique({
-      where: { id },
-    });
+    let user = cache.get(id);
+
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { id: parseInt(id) },
+      });
+      cache.set(id, user);
+      console.log(`Користувач з номером ${id} отримано з бази данних`);
+    } else {
+      console.log(`Користувач з номером ${id} отримано з кешу`);
+    }
+
     if (user) {
       res.json(user);
     } else {
-      res.status(404).json({ message: "User not found" });
+      res.status(404).json({ message: "Користувача не знайдено" });
     }
   } catch (err) {
     res.status(400).json({ error: err.message });
