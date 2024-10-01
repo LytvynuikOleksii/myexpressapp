@@ -26,6 +26,10 @@ app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
 
+app.get("/status", (req, res) => {
+  res.status(200).send("Сервер працює");
+});
+
 // Перегляд всіх користувачів
 app.get("/users", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
