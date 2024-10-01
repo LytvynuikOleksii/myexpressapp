@@ -11,8 +11,6 @@ const port = 3000;
 app.use(express.json());
 
 app.use((req, res, next) => {
-  // console.log(req);
-  // console.log(req.url, req.method);
   console.log("Метод", req.method, "і шлях", req.path, "запиту.");
   next();
 });
