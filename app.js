@@ -119,6 +119,7 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
+// Регестрація користувача
 app.post("/register", async (req, res) => {
   const { name, password, email } = req.body;
 
@@ -140,6 +141,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
+// Перевірка паролю
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -162,6 +164,43 @@ app.post("/login", async (req, res) => {
     res.status(200).send("Login successful");
   } catch (err) {
     res.status(500).send("Login error");
+  }
+});
+
+// Зміна паролю
+app.post("/change-password", async (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).send("Користувача не знайдено!");
+    }
+
+    const isValidPassword = await bcrypt.compare(
+      currentPassword,
+      user.hashedPassword
+    );
+    if (!isValidPassword) {
+      return res.status(401).send("Неправильний старий пароль!");
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await prisma.user.update({
+      where: { email: email },
+      data: { hashedPassword: hashedPassword },
+    });
+
+    res.status(200).send("Пароль успішно змінено");
+  } catch (err) {
+    res.status(500).send("Помилка під час зміни паролю");
   }
 });
 
