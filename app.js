@@ -140,6 +140,31 @@ app.post("/register", async (req, res) => {
   }
 });
 
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).send("No user found");
+    }
+    const isValid = await bcrypt.compare(password, user.hashedPassword);
+
+    if (!isValid) {
+      return res.status(401).send("Invalid password");
+    }
+
+    res.status(200).send("Login successful");
+  } catch (err) {
+    res.status(500).send("Login error");
+  }
+});
+
 if (require.main === module) {
   app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
