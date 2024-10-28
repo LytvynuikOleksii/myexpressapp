@@ -3,7 +3,7 @@ const { PrismaClient } = require("@prisma/client");
 const Joi = require("joi");
 const NodeCache = require("node-cache");
 const bcrypt = require("bcrypt");
-const session = require("express-session");
+const { authenticateToken, generateToken } = require("./security");
 
 const prisma = new PrismaClient();
 const cache = new NodeCache();
@@ -16,14 +16,6 @@ app.use((req, res, next) => {
   console.log("Метод", req.method, "і шлях", req.path, "запиту.");
   next();
 });
-
-app.use(
-  session({
-    secret: "your_secretkey_here",
-    resave: false,
-    saveUninitialized: true,
-  })
-);
 
 const userSchema = Joi.object({
   name: Joi.string().min(3).max(30).required(),
@@ -39,7 +31,7 @@ app.get("/status", (req, res) => {
 });
 
 // Перегляд всіх користувачів
-app.get("/users", async (req, res) => {
+app.get("/users", authenticateToken, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 3;
   const startIndex = (page - 1) * limit;
@@ -54,7 +46,7 @@ app.get("/users", async (req, res) => {
 });
 
 // Перегляд певного користувача
-app.get("/users/:id", async (req, res) => {
+app.get("/users/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
     let user = cache.get(id);
@@ -99,7 +91,7 @@ app.get("/users/:id", async (req, res) => {
 // });
 
 // Корегування користувача
-app.put("/users/:id", async (req, res) => {
+app.put("/users/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { name, email } = req.body;
 
@@ -115,7 +107,7 @@ app.put("/users/:id", async (req, res) => {
 });
 
 // Видалення користувача
-app.delete("/users/:id", async (req, res) => {
+app.delete("/users/:id", authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -170,19 +162,18 @@ app.post("/login", async (req, res) => {
       return res.status(401).send("Invalid password");
     }
 
-    req.session.username = user.name;
-    req.session.userId = user.id;
+    token = generateToken(user);
 
-    res.status(200).send("Login successful");
+    res.status(200).send({ message: "Login successful", token: token });
   } catch (err) {
     res.status(500).send("Login error");
     console.log(err);
   }
 });
 
-app.get("/profile", async (req, res) => {
-  if (req.session.username) {
-    res.send(`Hi, ${req.session.username}`);
+app.get("/profile", authenticateToken, async (req, res) => {
+  if (req.user) {
+    res.send(`Hi, ${req.user.username}`);
   } else {
     res.send("Please log in");
   }
